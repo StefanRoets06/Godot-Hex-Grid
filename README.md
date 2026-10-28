@@ -1,4 +1,4 @@
-# HexGrid for Godot 4
+# Godot Hex Grid
 
 A self-contained, single-file 2D hexagon grid for Godot 4.x (4.2 or newer recommended). It combines map storage, coordinate math, pathfinding, field of view, rendering and mouse input in one `Node2D` class, and its math is also usable without any node at all.
 
