@@ -1,4 +1,4 @@
-# Godot Hex Grid
+# HexGrid for Godot 4
 
 A self-contained, single-file 2D hexagon grid for Godot 4.x (4.2 or newer recommended). It combines map storage, coordinate math, pathfinding, field of view, rendering and mouse input in one `Node2D` class, and its math is also usable without any node at all.
 
@@ -540,9 +540,7 @@ For each cell: fill (highlight → custom color → wall color → default fill)
 ### Hover and selection
 
 ```gdscript
-grid.selected = Vector2i(2, 1)      # assign directly...
-grid.queue_redraw()                 # ...and request a redraw
-
+grid.selected = Vector2i(2, 1)      # redraws automatically
 grid.selected = HexGrid.INVALID     # clear selection
 ```
 
@@ -561,7 +559,7 @@ Because `HexGrid` is a `Node2D`, you can add child nodes (sprites, labels, your 
 | Signal | Arguments | When |
 |---|---|---|
 | `hex_hovered` | `coord: Vector2i` | Hovered hex changed. `HexGrid.INVALID` when the mouse leaves the map. |
-| `hex_clicked` | `coord: Vector2i, button: int` | A mouse button was pressed on a hex in the map. `button` is a `MOUSE_BUTTON_*` constant. |
+| `hex_clicked` | `coord: Vector2i, button: int` | A mouse button was pressed on a hex in the map. `button` is a `MOUSE_BUTTON_*` constant. Mouse-wheel events are ignored. |
 | `cell_changed` | `coord: Vector2i` | Emitted by `add_cell`, `remove_cell`, `set_walkable`, `set_blocks_sight`. |
 
 ```gdscript
@@ -759,7 +757,6 @@ You can also create an instance purely for logic. `HexGrid.new()` followed by `g
 | Clicks do nothing | `interactive` is false, a `Control` is eating the mouse event, or the hex isn't in the map. |
 | Click position is wrong | If you compute the hex yourself, remember to use `to_local()`. |
 | `Cannot assign value of type ... Orientation` errors | You're using an old copy. The enum is named `HexOrientation` (Godot has its own global `Orientation`). |
-| `set_cells()` type error | It requires `Array[Vector2i]`, not a plain `Array`. Build a typed array first (`var coords: Array[Vector2i] = []`). |
 | Rectangle map looks like a parallelogram | You changed `orientation` after generating. Call `generate()` again. |
 | Pathfinding returns `[]` | Start or goal is missing or not walkable, or the goal is walled off. |
 | Cell changes don't show | You modified `HexCell` fields directly. Call `queue_redraw()` or use the setter methods. |
@@ -816,7 +813,7 @@ You can also create an instance purely for logic. `HexGrid.new()` followed by `g
 | Method | Returns | Description |
 |---|---|---|
 | `generate()` | | Rebuild the map from `shape` and size settings. |
-| `set_cells(coords: Array[Vector2i])` | | Replace the whole map; clears highlights, hover, selection. |
+| `set_cells(coords: Array)` | | Replace the whole map; clears highlights, hover, selection. |
 | `add_cell(coord)` | `HexCell` | Add a cell (returns the existing one if present). |
 | `remove_cell(coord)` | | Remove a cell. |
 | `has_cell(coord)` | `bool` | |
