@@ -19,6 +19,7 @@ The algorithms follow Red Blob Games' [*Hexagonal Grids*](https://www.redblobgam
 - [Pathfinding and field of view](#pathfinding-and-field-of-view)
 - [Rendering, input and signals](#rendering-input-and-signals)
 - [Recipes](#recipes)
+- [Implementing units](#implementing-units)
 - [Using the math without a node](#using-the-math-without-a-node)
 - [Performance](#performance)
 - [Limitations](#limitations)
@@ -42,6 +43,7 @@ The algorithms follow Red Blob Games' [*Hexagonal Grids*](https://www.redblobgam
 | Cell data | `walkable`, `move_cost`, `blocks_sight`, `color` and a free-form `data` dictionary per cell. |
 | Rendering | Built-in `_draw()` renderer: fills, outlines, hover, selection, highlights, coordinate labels. |
 | Input | Hover and click detection as signals. |
+| Units | Not built in on purpose. A [guide](#implementing-units) shows the recommended way to add them. |
 
 ---
 
@@ -578,6 +580,8 @@ func set_terrain(coord: Vector2i, kind: String) -> void:
 
 ### Click to move a unit along a path
 
+This is the minimal single-unit version. For several units, blocking and turn flow, see [Implementing units](#implementing-units).
+
 *Your code:*
 
 ```gdscript
@@ -699,11 +703,228 @@ Use `JSON.stringify()` and `FileAccess` to write it to disk. JSON turns every nu
 grid.orientation = HexGrid.HexOrientation.FLAT
 ```
 
-Coordinates stay valid and only the pixel layout changes. A `RECTANGLE` map is no longer a clean rectangle afterwards, because it was generated with the other offset type. Call `generate()` to rebuild it.
+Coordinates stay valid and only the pixel layout changes. A `RECTANGLE` map is no longer a clean rectangle afterwards, because it was generated with the other offset type. Call `generate()` to rebuild it. Units placed by pixel position must be re-placed too (see [Implementing units](#implementing-units)).
 
 ### Multiple grids
 
 Each `HexGrid` is independent. Put several in one scene (a world map and a battle map, say) and position them like any `Node2D`.
+
+---
+
+## Implementing units
+
+`HexGrid` stores terrain and does geometry. It has no concept of units, and that is deliberate. This section shows one way to add units that works well with the grid's design. The code is *your code*, not part of `hex_grid.gd`.
+
+### Principles
+
+1. **The hex coordinate is the truth, the node position is derived.** Store `hex: Vector2i` on the unit and compute `position` from it with `hex_to_pixel()`. Never read a unit's location back from its pixels.
+2. **Units are children of the grid** (via a `Units` layer), so they share its transform and draw above the cells. Positions stay local to the grid and no `to_local()` conversion is needed.
+3. **Occupancy lives outside the grid** in a `Dictionary[Vector2i, HexUnit]` kept by a controller. Don't use `set_walkable()` for units, because that marks the cell as terrain: it draws as a wall, emits `cell_changed`, and breaks pathing out of that hex (`find_path` requires the start to be walkable).
+4. **Update logical state first, animate second.** Change `hex` and the occupancy map the moment a move is committed. The tween is only presentation, so nothing can double-book a hex mid-animation.
+5. **The controller owns selection**, not the grid. `grid.selected` is only a visual marker, so keep `selected_unit` in your own code.
+
+### Scene layout
+
+```
+Main (Node2D, controller script)
+└── HexGrid
+    └── Units (Node2D, y_sort_enabled = true)
+        ├── Knight (HexUnit)
+        └── Archer (HexUnit)
+```
+
+`y_sort_enabled` on `Units` makes units lower on screen draw over those behind them. Keep `Units` at position `(0, 0)` so unit positions stay in grid-local space.
+
+### The unit
+
+The unit knows its hex and how to animate. It knows nothing about other units.
+
+*Your script (`hex_unit.gd`):*
+
+```gdscript
+class_name HexUnit
+extends Node2D
+
+signal move_finished(unit: HexUnit)
+
+@export var move_points: float = 4.0
+@export var step_time: float = 0.15
+
+var hex: Vector2i = HexGrid.INVALID
+var _tween: Tween
+
+
+func place(grid: HexGrid, target: Vector2i) -> void:
+    hex = target
+    position = grid.hex_to_pixel(target)
+
+
+func move_along(grid: HexGrid, path: Array[Vector2i]) -> void:
+    if path.size() < 2:
+        return
+    if _tween != null:
+        _tween.kill()
+    _tween = create_tween()
+    for i: int in range(1, path.size()):
+        _tween.tween_property(self, "position", grid.hex_to_pixel(path[i]), step_time)
+    hex = path[-1]
+    _tween.finished.connect(func() -> void: move_finished.emit(self))
+```
+
+### The controller
+
+The controller owns the occupancy map, spawning, and movement rules.
+
+*Your script (the scene's controller):*
+
+```gdscript
+extends Node2D
+
+@onready var grid: HexGrid = $HexGrid
+@onready var unit_layer: Node2D = $HexGrid/Units
+
+var units: Dictionary[Vector2i, HexUnit] = {}
+var selected_unit: HexUnit = null
+var _busy: bool = false
+
+
+func spawn(unit: HexUnit, hex: Vector2i) -> bool:
+    if not grid.is_walkable(hex) or units.has(hex):
+        return false
+    unit_layer.add_child(unit)
+    unit.place(grid, hex)
+    units[hex] = unit
+    return true
+
+
+func despawn(unit: HexUnit) -> void:
+    units.erase(unit.hex)
+    if selected_unit == unit:
+        selected_unit = null
+    unit.queue_free()
+```
+
+### Making units block movement
+
+Pathfinding only understands terrain. To make other units obstacles, mark their hexes non-walkable for the duration of a single query, then restore them. Writing `cell.walkable` directly emits no signal and queues no redraw, which is what you want here. The change is invisible and lasts only for the call.
+
+*Your code (added to the controller):*
+
+```gdscript
+func _block_others(mover: HexUnit) -> Dictionary[Vector2i, bool]:
+    var saved: Dictionary[Vector2i, bool] = {}
+    for h: Vector2i in units:
+        if units[h] == mover:
+            continue
+        var cell: HexGrid.HexCell = grid.get_cell(h)
+        if cell != null:
+            saved[h] = cell.walkable
+            cell.walkable = false
+    return saved
+
+
+func _restore(saved: Dictionary[Vector2i, bool]) -> void:
+    for h: Vector2i in saved:
+        grid.get_cell(h).walkable = saved[h]
+
+
+func path_for(unit: HexUnit, goal: Vector2i) -> Array[Vector2i]:
+    var saved: Dictionary[Vector2i, bool] = _block_others(unit)
+    var path: Array[Vector2i] = grid.find_path(unit.hex, goal)
+    _restore(saved)
+    return path
+
+
+func reach_for(unit: HexUnit) -> Dictionary[Vector2i, float]:
+    var saved: Dictionary[Vector2i, bool] = _block_others(unit)
+    var reach: Dictionary[Vector2i, float] = grid.reachable(unit.hex, unit.move_points)
+    _restore(saved)
+    return reach
+```
+
+The query must finish before you restore, so don't `await` between block and restore. Both calls are synchronous, so this is safe as written.
+
+Pathing *through* friendly units while forbidding stopping on them is a different rule. Skip them in `_block_others()`, then remove occupied hexes from the result when choosing a destination.
+
+### Moving
+
+*Your code (added to the controller):*
+
+```gdscript
+func move_unit(unit: HexUnit, goal: Vector2i) -> void:
+    var path: Array[Vector2i] = path_for(unit, goal)
+    if path.size() < 2 or grid.path_cost(path) > unit.move_points:
+        return
+    _busy = true
+    units.erase(unit.hex)   # commit logical state now...
+    units[goal] = unit
+    unit.move_along(grid, path)   # ...then animate
+    await unit.move_finished
+    _busy = false
+```
+
+### Wiring up input
+
+*Your code (added to the controller):*
+
+```gdscript
+func _ready() -> void:
+    grid.hex_clicked.connect(_on_hex_clicked)
+    grid.hex_hovered.connect(_on_hex_hovered)
+
+
+func _on_hex_clicked(coord: Vector2i, button: int) -> void:
+    if button != MOUSE_BUTTON_LEFT or _busy:
+        return
+    if units.has(coord):
+        selected_unit = units[coord]
+        grid.selected = coord
+        _show_reach()
+    elif selected_unit != null:
+        move_unit(selected_unit, coord)
+        selected_unit = null
+        grid.selected = HexGrid.INVALID
+        grid.clear_highlights()
+    grid.queue_redraw()   # needed for the selection marker
+
+
+func _show_reach() -> void:
+    grid.clear_highlights()
+    grid.highlight(reach_for(selected_unit).keys(), Color(0.3, 0.6, 1.0, 0.4))
+
+
+func _on_hex_hovered(coord: Vector2i) -> void:
+    if selected_unit == null or _busy or coord == HexGrid.INVALID:
+        return
+    _show_reach()   # base layer first
+    grid.highlight(path_for(selected_unit, coord), Color(1.0, 0.9, 0.3, 0.6))   # path on top
+```
+
+Highlights apply in call order, so draw the broad layer (reach) first and the narrow one (path) last.
+
+### Changing orientation or `hex_size` at runtime
+
+Units are positioned in pixels, so they won't follow a layout change on their own. Re-place them after changing it:
+
+*Your code (added to the controller):*
+
+```gdscript
+func refresh_positions() -> void:
+    for h: Vector2i in units:
+        units[h].position = grid.hex_to_pixel(h)
+```
+
+### Pitfalls
+
+| Pitfall | Why it happens |
+|---|---|
+| Path from a unit returns `[]` | You marked the unit's own hex non-walkable. Exclude the mover when blocking. |
+| Units freeze mid-board after `generate()` / `set_cells()` | Those calls rebuild the map but not your occupancy dictionary. Clear and respawn units yourself. |
+| Two units end up on one hex | Occupancy was updated at animation end instead of move start. |
+| Wall color showing under units | You used `set_walkable()` for occupancy. Use a separate dictionary. |
+| Unit positions wrong in a non-child setup | Units outside the grid need `grid.to_global(grid.hex_to_pixel(hex))`. |
+| `await unit.move_finished` never returns | The tween was killed (for example by a second `move_along()` call) before it finished. Guard with `_busy`. |
+| Storing units in `cell.data` | Works, but it won't survive the save/load recipe (JSON can't hold nodes). Keep a unit id there at most. |
 
 ---
 
@@ -741,6 +962,7 @@ You can also create an instance purely for logic. `HexGrid.new()` plus `generate
 - **Wraparound** exists for hexagon-shaped maps only.
 - **Rendering** is a plain `_draw()` renderer with no textures, per-hex sprites or batching. It is a foundation, not final art.
 - **Costs** are per entered cell. There are no per-edge costs and no one-way movement.
+- **Units** are not part of the grid. Occupancy, blocking and turn logic are yours to build; see [Implementing units](#implementing-units).
 - **Input** is mouse-only (no touch or gamepad). `hovered` updates only on mouse motion, so it can be stale if the grid moves under a stationary cursor.
 - **Doubled coordinates** convert through axial. There is no direct doubled-to-pixel path.
 
@@ -758,7 +980,8 @@ You can also create an instance purely for logic. `HexGrid.new()` plus `generate
 | Selection doesn't appear | `selected` doesn't redraw on its own. Call `queue_redraw()` after setting it. |
 | Cell changes don't show | You edited `HexCell` fields directly. Call `queue_redraw()` or use the setter methods. |
 | Rectangle looks like a parallelogram | You changed `orientation` after generating. Call `generate()` again. |
-| `find_path` returns `[]` | Start or goal is missing or not walkable, or the goal is walled off. |
+| `find_path` returns `[]` | Start or goal is missing or not walkable, or the goal is walled off. If you use units, check you didn't mark the mover's own hex non-walkable. |
+| Units are in the wrong place after changing orientation or `hex_size` | Units are positioned in pixels. Re-place them with `hex_to_pixel()`. |
 | `wrap_hexagon` returns the same hex | The input is more than about one step outside the map, or the map isn't a (0, 0)-centered hexagon of that radius. |
 | Doubled-coordinate results look wrong | They require `(col + row)` to be even. |
 | Parse error on `Dictionary[Vector2i, HexCell]` | You're on a Godot version older than 4.4. |
