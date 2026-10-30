@@ -255,7 +255,7 @@ if cell != null:
 | `set_cell_color(coord, color)` | yes | no |
 | `set_cells(coords)` | yes | no |
 
-`has_cell(coord)` checks membership. `is_walkable(coord)` is `false` for missing **and** non-walkable cells.
+`has_cell(coord)` checks membership, and `in_map(coords)` filters a whole list of coordinates by it. `is_walkable(coord)` is `false` for missing **and** non-walkable cells.
 
 > If you change `HexCell` fields directly (`cell.walkable = false`), no signal is emitted and no redraw is queued. Call `grid.queue_redraw()` or use the helpers. Likewise, add and remove cells through `add_cell()` / `remove_cell()` rather than editing `cells`, so highlights and signals stay consistent.
 
@@ -330,6 +330,7 @@ If a unit is a **child** of the grid, set `unit.position = grid.hex_to_pixel(hex
 | `HexGrid.diagonal_neighbor(hex, dir)` | Static. Ignores the map. |
 | `grid.neighbors(hex)` | Neighbors that **exist** in the map. |
 | `grid.walkable_neighbors(hex)` | Neighbors that exist **and** are walkable. |
+| `grid.in_map(coords)` | Keeps only the coordinates that exist in the map, in their original order. Use it to trim the static shape results below. |
 | `HexGrid.distance(a, b)` | Static. Distance in steps. |
 | `HexGrid.line(a, b)` | Static. Hexes on the straight line from `a` to `b`, both endpoints included (`distance(a, b) + 1` hexes). Returns `[a]` if `a == b`. Ignores the map and obstacles. |
 | `HexGrid.hexes_in_range(center, n)` | Static. Filled hexagon: every hex within `n` steps of `center`, including the center (`hexagon_count(n)` hexes). Ignores the map. |
@@ -367,20 +368,16 @@ var overlap: Array[Vector2i] = HexGrid.intersect_ranges([
 
 ### Restricting results to the map
 
-`filter()` and `map()` return an untyped `Array`, which can't be passed to `set_cells()`. A small helper keeps the types intact:
+The static shape functions know nothing about the map, so their results can include hexes that don't exist. `grid.in_map(coords)` removes them:
 
-*Helper you add yourself, not part of `HexGrid`: keep only coordinates that exist in the map*
+*Your code: trim a range and a ring to the map*
 
 ```gdscript
-func in_map(coords: Array[Vector2i]) -> Array[Vector2i]:
-    var out: Array[Vector2i] = []
-    for h: Vector2i in coords:
-        if grid.has_cell(h):
-            out.append(h)
-    return out
+var blast: Array[Vector2i] = grid.in_map(HexGrid.hexes_in_range(target, 2))
+var wave: Array[Vector2i] = grid.in_map(HexGrid.ring(target, 3))
 ```
 
-If you do use `filter()` / `map()`, convert with `typed_array.assign(untyped_array)`.
+`in_map()` accepts any `Array` and always returns a typed `Array[Vector2i]`, so the result can be passed straight to `set_cells()` or `highlight()`. This matters because `filter()` and `map()` return an untyped `Array`, which `set_cells()` rejects. If you do use `filter()` / `map()` yourself, convert with `typed_array.assign(untyped_array)`.
 
 ---
 
@@ -559,7 +556,7 @@ Input uses `_unhandled_input()`:
 
 ## Recipes
 
-Recipes assume a `grid: HexGrid` variable. The `in_map()` helper is defined in [Neighbors, ranges and lines](#neighbors-ranges-and-lines).
+Recipes assume a `grid: HexGrid` variable.
 
 ### Terrain types with different costs
 
@@ -652,8 +649,8 @@ func update_fog(origin: Vector2i, vision: int) -> void:
 *Your code: compute blast, ring and beam hit areas*
 
 ```gdscript
-var blast: Array[Vector2i] = in_map(HexGrid.hexes_in_range(target, 2))
-var wave: Array[Vector2i] = in_map(HexGrid.ring(target, 3))
+var blast: Array[Vector2i] = grid.in_map(HexGrid.hexes_in_range(target, 2))
+var wave: Array[Vector2i] = grid.in_map(HexGrid.ring(target, 3))
 
 # A beam that stops at (and hits) the first opaque hex
 var hit: Array[Vector2i] = []
@@ -1037,6 +1034,7 @@ You can also create an instance purely for logic. `HexGrid.new()` plus `generate
 | `remove_cell(coord: Vector2i)` | `void` |
 | `has_cell(coord: Vector2i)` | `bool` |
 | `get_cell(coord: Vector2i)` | `HexCell` (`null` if missing) |
+| `in_map(coords: Array)` | `Array[Vector2i]` (only coordinates that exist in the map) |
 | `is_walkable(coord: Vector2i)` | `bool` |
 | `set_walkable(coord: Vector2i, value: bool)` | `void` |
 | `set_blocks_sight(coord: Vector2i, value: bool)` | `void` |
