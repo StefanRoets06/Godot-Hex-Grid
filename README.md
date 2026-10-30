@@ -331,6 +331,12 @@ If a unit is a **child** of the grid, set `unit.position = grid.hex_to_pixel(hex
 | `grid.neighbors(hex)` | Neighbors that **exist** in the map. |
 | `grid.walkable_neighbors(hex)` | Neighbors that exist **and** are walkable. |
 | `HexGrid.distance(a, b)` | Static. Distance in steps. |
+| `HexGrid.line(a, b)` | Static. Hexes on the straight line from `a` to `b`, both endpoints included (`distance(a, b) + 1` hexes). Returns `[a]` if `a == b`. Ignores the map and obstacles. |
+| `HexGrid.hexes_in_range(center, n)` | Static. Filled hexagon: every hex within `n` steps of `center`, including the center (`hexagon_count(n)` hexes). Ignores the map. |
+| `HexGrid.intersect_ranges(ranges)` | Static. Hexes inside **all** of the given `[center, radius]` pairs. Returns `[]` if `ranges` is empty or the ranges don't overlap. |
+| `HexGrid.ring(center, rad)` | Static. Only the hexes exactly `rad` steps from `center` (`6 * rad` hexes), ordered around the ring. `rad <= 0` returns just the center. |
+| `HexGrid.spiral(center, rad)` | Static. The center, then ring 1, ring 2, up to ring `rad`, in that order (`hexagon_count(rad)` hexes). Same hexes as `hexes_in_range`, different order. |
+| `HexGrid.hexagon_count(n)` | Static. Number of hexes in a hexagon of radius `n`: `1 + 3 * n * (n + 1)`. |
 
 *Your code: get a distance and a neighbor*
 
