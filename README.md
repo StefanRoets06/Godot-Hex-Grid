@@ -1,5 +1,15 @@
 # HexGrid for Godot 4
 
+[![Godot 4.4+](https://img.shields.io/badge/Godot-4.4%2B-478CBF?logo=godotengine&logoColor=white)](https://godotengine.org)
+[![GDScript](https://img.shields.io/badge/language-GDScript-478CBF?logo=godotengine&logoColor=white)](https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html)
+[![License: MIT](https://img.shields.io/github/license/StefanRoets06/Godot-Hex-Grid?color=green)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/StefanRoets06/Godot-Hex-Grid?style=flat&logo=github)](https://github.com/StefanRoets06/Godot-Hex-Grid/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/StefanRoets06/Godot-Hex-Grid?style=flat&logo=github)](https://github.com/StefanRoets06/Godot-Hex-Grid/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/StefanRoets06/Godot-Hex-Grid)](https://github.com/StefanRoets06/Godot-Hex-Grid/issues)
+[![Last commit](https://img.shields.io/github/last-commit/StefanRoets06/Godot-Hex-Grid)](https://github.com/StefanRoets06/Godot-Hex-Grid/commits)
+[![Views](https://hits.sh/github.com/StefanRoets06/Godot-Hex-Grid.svg?label=views&color=blue)](https://hits.sh/github.com/StefanRoets06/Godot-Hex-Grid/)
+[![AI Assisted](https://img.shields.io/badge/AI%20assisted-Claude-D97757?logo=anthropic&logoColor=white)](https://www.anthropic.com/claude)
+
 A single-file 2D hexagon grid for Godot **4.4 or newer**. One `Node2D` class covers map storage, coordinate math, pathfinding, field of view, rendering and mouse input. All the math is `static`, so you can also use it without a node.
 
 The algorithms follow Red Blob Games' [*Hexagonal Grids*](https://www.redblobgames.com/grids/hexagons/): axial coordinates for storage, cube coordinates for math, offset and doubled coordinates for conversions.
