@@ -51,6 +51,8 @@ The algorithms follow Red Blob Games' [*Hexagonal Grids*](https://www.redblobgam
 
 Copy `hex_grid.gd` into your project (for example `res://scripts/hex_grid.gd`). It declares `class_name HexGrid`, so Godot registers it automatically. No autoload, plugin or imported resource is needed. If it doesn't show up in the *Add Node* dialog, reload the project.
 
+> **About the code examples.** Every code block is labelled. *Your code* is example code for your own scripts, never part of `hex_grid.gd`. Blocks marked as helpers are small functions you add to your own project if you want them; `HexGrid` doesn't include them.
+
 ---
 
 ## Quick start
@@ -62,6 +64,8 @@ Copy `hex_grid.gd` into your project (for example `res://scripts/hex_grid.gd`). 
 3. Run the scene. With `auto_generate` on (the default), the map is generated in `_ready()`.
 
 ### From code
+
+*Your script:*
 
 ```gdscript
 extends Node2D
@@ -89,6 +93,8 @@ func _on_hex_clicked(coord: Vector2i, button: int) -> void:
 
 Hexagon maps are already centered on the node's origin. For other shapes, use `get_bounds()`:
 
+*Your code:*
+
 ```gdscript
 func _center_grid() -> void:
     var bounds: Rect2 = grid.get_bounds()
@@ -104,6 +110,8 @@ func _center_grid() -> void:
 ### Axial coordinates
 
 Every hex is a `Vector2i(q, r)`. The third cube coordinate is derived: `s = -q - r`. Because hexes are plain vectors, you can add, subtract and scale them:
+
+*Your code:*
 
 ```gdscript
 var a: Vector2i = Vector2i(2, -1)
@@ -165,6 +173,8 @@ Changing `shape`, `radius`, `grid_width` or `grid_height` after the map exists d
 
 ### Built-in shapes
 
+*Your code:*
+
 ```gdscript
 grid.shape = HexGrid.Shape.HEXAGON
 grid.radius = 8
@@ -182,6 +192,8 @@ grid.generate()  # 1 + 3 * 8 * 9 = 217 hexes
 
 The generators are `static`, so you can build coordinate lists and combine them. Any set of unique axial coordinates is a valid map.
 
+*Your code:*
+
 ```gdscript
 var coords: Array[Vector2i] = HexGrid.hexagon_coords(5)
 for c: Vector2i in HexGrid.rhombus_coords(4, 4):
@@ -192,6 +204,8 @@ grid.remove_cell(Vector2i.ZERO)  # carve a hole afterwards
 ```
 
 ### From row and column data
+
+*Your code:*
 
 ```gdscript
 var coords: Array[Vector2i] = []
@@ -218,6 +232,8 @@ Each map position holds a `HexCell` (a `RefCounted` inner class):
 | `color` | `Color` | alpha 0 | Custom fill. Alpha 0 means "use the grid defaults". |
 | `data` | `Dictionary` | `{}` | Anything else: terrain, owner, unit id. |
 
+*Your code:*
+
 ```gdscript
 var cell: HexGrid.HexCell = grid.get_cell(Vector2i(2, -1))  # null if not in the map
 if cell != null:
@@ -243,6 +259,8 @@ if cell != null:
 
 ### Iterating
 
+*Your code:*
+
 ```gdscript
 for coord: Vector2i in grid.cells:
     var cell: HexGrid.HexCell = grid.cells[coord]
@@ -255,6 +273,8 @@ for coord: Vector2i in grid.cells:
 ### Coordinate conversion
 
 All conversions are `static`.
+
+*Your code:*
 
 ```gdscript
 var axial: Vector2i = Vector2i(3, -2)
@@ -284,6 +304,8 @@ Doubled-width coordinates suit pointy-top layouts and doubled-height suit flat-t
 | `get_bounds()` | Bounding `Rect2` of the whole map in local space. |
 | `HexGrid.hex_round(q, r)` | Static. Correct cube rounding of fractional coordinates. |
 
+*Your code:*
+
 ```gdscript
 # Global position -> hex
 var hex: Vector2i = grid.pixel_to_hex(grid.to_local(global_pos))
@@ -308,12 +330,16 @@ If a unit is a **child** of the grid, set `unit.position = grid.hex_to_pixel(hex
 | `grid.walkable_neighbors(hex)` | Neighbors that exist **and** are walkable. |
 | `HexGrid.distance(a, b)` | Static. Distance in steps. |
 
+*Your code:*
+
 ```gdscript
 var d: int = HexGrid.distance(Vector2i(0, 0), Vector2i(3, -2))  # 3
 var east_ish: Vector2i = HexGrid.neighbor(Vector2i(2, 2), 0)  # (3, 2)
 ```
 
 The shape functions below are static and ignore the map and obstacles.
+
+*Your code:*
 
 ```gdscript
 var beam: Array[Vector2i] = HexGrid.line(Vector2i(0, 0), Vector2i(4, -2))  # includes both endpoints
@@ -335,6 +361,8 @@ var overlap: Array[Vector2i] = HexGrid.intersect_ranges([
 
 `filter()` and `map()` return an untyped `Array`, which can't be passed to `set_cells()`. A small helper keeps the types intact:
 
+*Your code (a helper you add yourself, not part of `HexGrid`):*
+
 ```gdscript
 func in_map(coords: Array[Vector2i]) -> Array[Vector2i]:
     var out: Array[Vector2i] = []
@@ -354,6 +382,8 @@ If you do use `filter()` / `map()`, convert with `typed_array.assign(untyped_arr
 
 `steps` is a multiple of 60°. Positive is clockwise on screen, negative is counter-clockwise.
 
+*Your code:*
+
 ```gdscript
 var cw: Vector2i = HexGrid.rotate_around(hex, center, 1)
 var half_turn: Vector2i = HexGrid.rotate_around(hex, center, 3)
@@ -361,6 +391,8 @@ var ccw: Vector2i = HexGrid.rotate_around(hex, center, -1)
 ```
 
 Rotating a multi-hex shape around a pivot:
+
+*Your code (a helper you add yourself, not part of `HexGrid`):*
 
 ```gdscript
 func rotate_shape(shape: Array[Vector2i], pivot: Vector2i, steps: int) -> Array[Vector2i]:
@@ -374,6 +406,8 @@ func rotate_shape(shape: Array[Vector2i], pivot: Vector2i, steps: int) -> Array[
 
 `axis` is `0` (q), `1` (r) or `2` (s). The center defaults to the origin.
 
+*Your code:*
+
 ```gdscript
 var mirrored: Vector2i = HexGrid.reflect(hex, 0)
 var mirrored_about: Vector2i = HexGrid.reflect(hex, 2, some_center)
@@ -382,6 +416,8 @@ var mirrored_about: Vector2i = HexGrid.reflect(hex, 2, some_center)
 ### Wraparound
 
 For **hexagon maps centered on (0, 0)** only:
+
+*Your code:*
 
 ```gdscript
 var next: Vector2i = HexGrid.wrap_hexagon(hex + HexGrid.DIRECTIONS[0], radius)
@@ -403,6 +439,8 @@ var next: Vector2i = HexGrid.wrap_hexagon(hex + HexGrid.DIRECTIONS[0], radius)
 
 A\* search. Returns the path **including** start and goal, or an empty array if either end isn't walkable or the goal is unreachable.
 
+*Your code:*
+
 ```gdscript
 var path: Array[Vector2i] = grid.find_path(Vector2i(0, 0), Vector2i(4, -1))
 if path.is_empty():
@@ -417,6 +455,8 @@ The heuristic is `distance * cheapest walkable move_cost`, so it stays admissibl
 
 Dijkstra flood fill. Returns `{ coord: total_cost }` for every hex reachable within `max_cost`, including the start at cost 0. With all costs at 1.0 it acts as an obstacle-aware, distance-limited flood fill.
 
+*Your code:*
+
 ```gdscript
 var reach: Dictionary[Vector2i, float] = grid.reachable(unit_hex, 4.0)
 grid.highlight(reach.keys(), Color(0.3, 0.6, 1.0, 0.4))
@@ -430,6 +470,8 @@ A hex in range is visible if the line from `origin` to it crosses no cell with `
 - Blocking hexes themselves are visible. You can see a wall, not through it.
 - A line that crosses a gap (a missing cell) counts as blocked.
 - Walkability is not considered.
+
+*Your code:*
 
 ```gdscript
 grid.set_blocks_sight(Vector2i(2, 0), true)
@@ -447,6 +489,8 @@ For each cell: fill (highlight, then custom color, then wall color, then default
 
 ### Highlights
 
+*Your code:*
+
 ```gdscript
 grid.highlight(some_hexes, Color(0.9, 0.3, 0.3, 0.5))  # add or overwrite
 grid.clear_highlights()
@@ -457,6 +501,8 @@ A highlight **replaces** the cell's fill rather than blending with it, so a semi
 ### Hover and selection
 
 `hovered` is updated automatically from mouse motion while `interactive` is on. `selected` is **never set by the grid**, not even on click. Set it yourself and request a redraw:
+
+*Your code:*
 
 ```gdscript
 grid.selected = Vector2i(2, 1)
@@ -475,6 +521,8 @@ grid.queue_redraw()
 | `cell_changed` | `coord: Vector2i` | See the table in [Working with cells](#working-with-cells). |
 
 `hex_clicked` fires for mouse-wheel ticks too (`MOUSE_BUTTON_WHEEL_UP` / `MOUSE_BUTTON_WHEEL_DOWN`), so always check `button`:
+
+*Your code:*
 
 ```gdscript
 grid.hex_clicked.connect(func(coord: Vector2i, button: int) -> void:
@@ -506,6 +554,8 @@ Recipes assume a `grid: HexGrid` variable. The `in_map()` helper is defined in [
 
 ### Terrain types with different costs
 
+*Your code:*
+
 ```gdscript
 const TERRAIN: Dictionary = {
     "grass": {"cost": 1.0, "walkable": true, "color": Color(0.25, 0.5, 0.25)},
@@ -527,6 +577,8 @@ func set_terrain(coord: Vector2i, kind: String) -> void:
 ```
 
 ### Click to move a unit along a path
+
+*Your code:*
 
 ```gdscript
 @onready var grid: HexGrid = $HexGrid
@@ -552,6 +604,8 @@ func _on_hex_clicked(coord: Vector2i, button: int) -> void:
 
 ### Movement range preview on hover
 
+*Your code:*
+
 ```gdscript
 func _on_hex_hovered(coord: Vector2i) -> void:
     grid.clear_highlights()
@@ -564,6 +618,8 @@ func _on_hex_hovered(coord: Vector2i) -> void:
 ### Fog of war
 
 Highlights replace the cell fill, so fogged hexes show the background rather than the terrain underneath. For a fog that preserves terrain colors, use cell colors or a child overlay node instead.
+
+*Your code:*
 
 ```gdscript
 func update_fog(origin: Vector2i, vision: int) -> void:
@@ -582,6 +638,8 @@ func update_fog(origin: Vector2i, vision: int) -> void:
 
 ### Area-of-effect and beam attacks
 
+*Your code:*
+
 ```gdscript
 var blast: Array[Vector2i] = in_map(HexGrid.hexes_in_range(target, 2))
 var wave: Array[Vector2i] = in_map(HexGrid.ring(target, 3))
@@ -598,6 +656,8 @@ for h: Vector2i in HexGrid.line(attacker, target):
 ```
 
 ### Saving and loading a map
+
+*Your code:*
 
 ```gdscript
 func save_map() -> Array[Dictionary]:
@@ -633,6 +693,8 @@ Use `JSON.stringify()` and `FileAccess` to write it to disk. JSON turns every nu
 
 ### Switching orientation at runtime
 
+*Your code:*
+
 ```gdscript
 grid.orientation = HexGrid.HexOrientation.FLAT
 ```
@@ -648,6 +710,8 @@ Each `HexGrid` is independent. Put several in one scene (a world map and a battl
 ## Using the math without a node
 
 Every `static` function works with no instance and no scene tree:
+
+*Your code:*
 
 ```gdscript
 var d: int = HexGrid.distance(a, b)
