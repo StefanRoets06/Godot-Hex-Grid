@@ -48,7 +48,6 @@ The algorithms follow Red Blob Games' [*Hexagonal Grids*](https://www.redblobgam
 ## Requirements and installation
 
 - **Godot 4.4 or newer.** The class uses typed dictionaries (`Dictionary[Vector2i, HexCell]`), which were added in 4.4.
-- The code is fully statically typed, with explicit types and no `:=` inference.
 
 Copy `hex_grid.gd` into your project (for example `res://scripts/hex_grid.gd`). It declares `class_name HexGrid`, so Godot registers it automatically. No autoload, plugin or imported resource is needed. If it doesn't show up in the *Add Node* dialog, reload the project.
 
