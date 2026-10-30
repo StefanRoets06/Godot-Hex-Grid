@@ -136,6 +136,16 @@ func get_cell(coord: Vector2i) -> HexCell:
 	return cells.get(coord)
 
 
+## Returns only the coordinates that exist in the map, in their original order.
+## Use it to trim static shape results (ranges, rings, lines) to the map.
+func in_map(coords: Array) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for h: Vector2i in coords:
+		if cells.has(h):
+			out.append(h)
+	return out
+
+
 func is_walkable(coord: Vector2i) -> bool:
 	var c: HexCell = cells.get(coord)
 	return c != null and c.walkable
