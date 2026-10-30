@@ -26,6 +26,7 @@ The algorithms follow Red Blob Games' [*Hexagonal Grids*](https://www.redblobgam
 - [Troubleshooting](#troubleshooting)
 - [API reference](#api-reference)
 - [Credits](#credits)
+- [License](#license)
 
 ---
 
@@ -1091,3 +1092,7 @@ You can also create an instance purely for logic. `HexGrid.new()` plus `generate
 ## Credits
 
 Algorithms and coordinate systems are based on Amit Patel's *Hexagonal Grids* guide at [Red Blob Games](https://www.redblobgames.com/grids/hexagons/), which builds on the work of Charles Fu and Clark Verbrugge.
+
+## License
+
+This project is available under the [MIT License](LICENSE).
