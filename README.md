@@ -854,7 +854,7 @@ You can also create an instance purely for logic. `HexGrid.new()` plus `generate
 | `reflect(h: Vector2i, axis: int, center: Vector2i = Vector2i.ZERO)` | `Vector2i` |
 | `wrap_hexagon(h: Vector2i, rad: int)` | `Vector2i` |
 
-### `HexCell`
+### HexCell
 
 `coord: Vector2i`, `walkable: bool`, `move_cost: float`, `blocks_sight: bool`, `color: Color`, `data: Dictionary`.
 
