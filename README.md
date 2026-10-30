@@ -88,7 +88,7 @@ func _ready() -> void:
 
 
 func _on_hex_clicked(coord: Vector2i, button: int) -> void:
-    print("Clicked ", coord, ", distance from origin: ", HexGrid.distance(Vector2i.ZERO, coord))
+    pass  # Handle the click here, e.g. select the hex or order a unit to move
 ```
 
 ### Centering the grid
@@ -312,7 +312,7 @@ Doubled-width coordinates suit pointy-top layouts and doubled-height suit flat-t
 # Global position -> hex
 var hex: Vector2i = grid.pixel_to_hex(grid.to_local(global_pos))
 if grid.has_cell(hex):
-    pass
+    pass  # The position is inside the map: use hex here
 
 # Hex -> global position
 var world_pos: Vector2 = grid.to_global(grid.hex_to_pixel(hex))
@@ -446,9 +446,10 @@ A\* search. Returns the path **including** start and goal, or an empty array if 
 ```gdscript
 var path: Array[Vector2i] = grid.find_path(Vector2i(0, 0), Vector2i(4, -1))
 if path.is_empty():
-    print("No route")
+    pass  # No route: reject the move or show feedback
 else:
-    print("Steps: ", path.size() - 1, ", cost: ", grid.path_cost(path))
+    var cost: float = grid.path_cost(path)  # compare against the unit's movement points
+    # Follow the path, e.g. tween the unit along it
 ```
 
 The heuristic is `distance * cheapest walkable move_cost`, so it stays admissible and paths are optimal with varied terrain. `path_cost()` excludes the start hex.
